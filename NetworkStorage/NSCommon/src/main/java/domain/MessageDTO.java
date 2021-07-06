@@ -1,33 +1,24 @@
 package domain;
 
 import com.google.gson.Gson;
+import lombok.Getter;
+import lombok.Setter;
 import java.util.List;
 
+@Getter
+@Setter
 public class MessageDTO {
-
-    private List<FileInfoServer> serverCatalogList;
+    private List<FileInfo> serverCatalogList;
     private MessageType messageType;
     private String fileName;
+    private String catalogName;
     private String fileDirectorySelectTo;
     private String fileDirectorySelectFrom;
-    private String serverCatalogDirectory;
+    private String serverCatalog;
     private Long fileSize;
-
-    public void setMessageType(MessageType messageType) {
-        this.messageType = messageType;
-    }
-
-    public MessageType getMessageType() {
-        return messageType;
-    }
-
-    public List<FileInfoServer> getServerCatalogList() {
-        return serverCatalogList;
-    }
-
-    public void setServerCatalogList(List<FileInfoServer> serverCatalogList) {
-        this.serverCatalogList = serverCatalogList;
-    }
+    private String Login;
+    private String Password;
+    private String Error;
 
     public static MessageDTO convertFromJson(String json) {
         return new Gson().fromJson(json, MessageDTO.class);
@@ -35,45 +26,5 @@ public class MessageDTO {
 
     public String convertToJson() {
         return new Gson().toJson(this);
-    }
-
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
-    }
-
-    public String getFileName() {
-        return fileName;
-    }
-
-    public Long getFileSize() {
-        return fileSize;
-    }
-
-    public void setFileSize(Long fileSize) {
-        this.fileSize = fileSize;
-    }
-
-    public String getFileDirectorySelectTo() {
-        return fileDirectorySelectTo;
-    }
-
-    public void setFileDirectorySelectTo(String fileDirectorySelectTo) {
-        this.fileDirectorySelectTo = fileDirectorySelectTo;
-    }
-
-    public String getFileDirectorySelectFrom() {
-        return fileDirectorySelectFrom;
-    }
-
-    public void setFileDirectorySelectFrom(String fileDirectorySelectFrom) {
-        this.fileDirectorySelectFrom = fileDirectorySelectFrom;
-    }
-
-    public String getServerCatalogDirectory() {
-        return serverCatalogDirectory;
-    }
-
-    public void setServerCatalogDirectory(String serverCatalogDirectory) {
-        this.serverCatalogDirectory = serverCatalogDirectory;
     }
 }

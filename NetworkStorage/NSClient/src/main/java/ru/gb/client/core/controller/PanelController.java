@@ -1,12 +1,13 @@
 package ru.gb.client.core.controller;
 
-import domain.FileInfoClient;
-import domain.FileInfoServer;
+import domain.FileInfo;
+import domain.FileType;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.event.ActionEvent;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
+import domain.allertsandexeption.AlertMessage;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -22,15 +23,15 @@ public class PanelController {
     public final static String SERVER = "server";
 
     public ComboBox<String> diskCatalogBox;
-    public TableView<FileInfoClient> filesTable;
-    public TableView<FileInfoServer> filesTableServer;
+    public TableView<FileInfo> filesTable;
+    public TableView<FileInfo> filesTableServer;
     public TextField clientPathField;
     public TextField serverPathField;
-    public TableColumn<FileInfoClient,String> filenameColumn;
-    public TableColumn<FileInfoClient,Long> fileSizeColumn;
-    public TableColumn<FileInfoServer,Long> fileSizeColumnServer;
-    public TableColumn<FileInfoServer,String> filenameColumnServer;
-    public TableColumn<FileInfoServer,String> fileTypeColumnServer;
+    public TableColumn<FileInfo,String> filenameColumn;
+    public TableColumn<FileInfo,Long> fileSizeColumn;
+    public TableColumn<FileInfo,Long> fileSizeColumnServer;
+    public TableColumn<FileInfo,String> filenameColumnServer;
+    public TableColumn<FileInfo,String> fileTypeColumnServer;
     public Button serverCatalogUpBtn;
 
     public void loadDiskCatalog () {
@@ -39,15 +40,33 @@ public class PanelController {
             diskCatalogBox.getItems().add(p.toString());
         }
         diskCatalogBox.getSelectionModel().select(0);
-
     }
 
     public void ClientFilesView() {
         updateListClientCatalog(Paths.get("."));
-        filenameColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFilename()));
+        setCellFileNameParam(filenameColumn);
+        setCellFileSizeParam(fileSizeColumn);
+        setCellFileTypeParam(fileSizeColumn);
+    }
+
+    public void serverFilesView () {
+        setCellFileNameParam(filenameColumnServer);
+        setCellFileSizeParam(fileSizeColumnServer);
+        setCellFileTypeParam(fileSizeColumnServer);
+        filesTableServer.getSortOrder();
+    }
+
+    private void setCellFileNameParam (TableColumn<FileInfo,String> fileNameColumn) {
+        fileNameColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFilename()));
+    }
+
+    private void setCellFileSizeParam (TableColumn<FileInfo,Long> fileSizeColumn) {
         fileSizeColumn.setCellValueFactory(param -> new SimpleObjectProperty<>(param.getValue().getSize()));
-        fileSizeColumn.setCellFactory(column -> {
-            return new TableCell<FileInfoClient, Long>() {
+    }
+
+    private void setCellFileTypeParam (TableColumn<FileInfo,Long> fileTypeColumn) {
+        fileTypeColumn.setCellFactory(column -> {
+            return new TableCell<FileInfo, Long>() {
                 @Override
                 protected void updateItem(Long item, boolean empty) {
                     super.updateItem(item, empty);
@@ -65,25 +84,9 @@ public class PanelController {
 
             };
         });
-        TableColumn<FileInfoClient,String> fileTypeColumn = new TableColumn<>();
-        fileTypeColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getType().getName()));
-        filesTable.getColumns().addAll(fileTypeColumn);
-        filesTable.getSortOrder().add(fileTypeColumn);
     }
 
-    public void serverFilesView () {
-        filenameColumnServer.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFileName()));
-        fileSizeColumnServer.setCellValueFactory(param -> new SimpleObjectProperty<>(param.getValue().getFileSize()));
-        fileTypeColumnServer.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFileType()));
-        for (FileInfoServer item : filesTableServer.getItems()) {
-            if (item.getFileType().equals("[DIR]")) {
-                item.setFileSize(null);
-            }
-        }
-        filesTableServer.getSortOrder();
-    }
-
-    public void updateListServerCatalog(List<FileInfoServer> serverList) {
+    public void updateListServerCatalog(List<FileInfo> serverList) {
         filesTableServer.getItems().clear();
         filesTableServer.getItems().addAll(serverList);
         serverFilesView();
@@ -91,12 +94,12 @@ public class PanelController {
 
     private void updateListClientCatalog(Path path) {
         try {
-             clientPathField.setText(path.normalize().toAbsolutePath().toString());
-             filesTable.getItems().clear();
-             filesTable.getItems().addAll(Files.list(path).map(FileInfoClient::new).collect(Collectors.toList()));
-             filesTable.sort();
+            clientPathField.setText(path.normalize().toAbsolutePath().toString());
+            filesTable.getItems().clear();
+            filesTable.getItems().addAll(Files.list(path).map(FileInfo::new).collect(Collectors.toList()));
+            filesTable.sort();
         } catch (IOException e) {
-            Alert alert = new Alert (Alert.AlertType.WARNING, "Возникла ошибка", ButtonType.OK);
+            Alert alert = new Alert (Alert.AlertType.WARNING, AlertMessage.UPDATE_ERROR, ButtonType.OK);
             alert.showAndWait();
         }
     }
@@ -113,7 +116,7 @@ public class PanelController {
                 if (!filesTableServer.isFocused() || filesTableServer.getSelectionModel().isEmpty()) {
                     return null;
                 }
-                return filesTableServer.getSelectionModel().getSelectedItem().getFileName();
+                return filesTableServer.getSelectionModel().getSelectedItem().getFilename();
             }
         }
         return null;
@@ -125,7 +128,7 @@ public class PanelController {
                 return filesTable.getSelectionModel().getSelectedItem().getSize();
             }
             case (SERVER) -> {
-                return filesTableServer.getSelectionModel().getSelectedItem().getFileSize();
+                return filesTableServer.getSelectionModel().getSelectedItem().getSize();
             }
         }
         return -1L;
@@ -133,8 +136,8 @@ public class PanelController {
 
     public boolean fileIsExists (String filename, String pathClientDirectory) {
         try {
-            List<FileInfoClient> clientCatalog = Files.list(Paths.get(pathClientDirectory)).map(FileInfoClient::new).collect(Collectors.toList());
-            for (FileInfoClient file : clientCatalog) {
+            List<FileInfo> clientCatalog = Files.list(Paths.get(pathClientDirectory)).map(FileInfo::new).collect(Collectors.toList());
+            for (FileInfo file : clientCatalog) {
                 if (file.getFilename().equals(filename)) return false;
             }
         } catch (IOException e) {
@@ -161,7 +164,7 @@ public class PanelController {
     }
 
     public void selectedFileInDirectory(MouseEvent mouseEvent) {
-        if (mouseEvent.getClickCount() == 2) {
+        if (mouseEvent.getClickCount() == 2 && !filesTable.getSelectionModel().getSelectedItem().getType().equals(FileType.FILE)) {
             Path path = Paths.get(clientPathField.getText()).resolve(filesTable.getSelectionModel().getSelectedItem().getFilename());
             updateListClientCatalog(path);
         }
@@ -172,5 +175,9 @@ public class PanelController {
         if (upperPath != null) {
             updateListClientCatalog(upperPath);
         }
+    }
+
+    public void updateClientPanel () {
+        updateListClientCatalog(Paths.get(getCurrentPath()));
     }
 }

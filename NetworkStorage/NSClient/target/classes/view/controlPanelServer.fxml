@@ -22,9 +22,8 @@
             </HBox>
             <TableView fx:id="filesTableServer" maxHeight="1.7976931348623157E308"  prefHeight="279.0" prefWidth="426.0" GridPane.hgrow="ALWAYS" GridPane.rowIndex="1" GridPane.vgrow="ALWAYS">
                 <columns>
-                    <TableColumn fx:id="filenameColumnServer" maxWidth="1.7976931348623157E308" prefWidth="262.0" text="Имя файла" />
+                    <TableColumn fx:id="filenameColumnServer" maxWidth="1.7976931348623157E308" prefWidth="300.0" text="Имя файла" />
                     <TableColumn fx:id="fileSizeColumnServer" maxWidth="1.7976931348623157E308" prefWidth="119.0" text="Размер файла" />
-                    <TableColumn fx:id="fileTypeColumnServer" maxWidth="1.7976931348623157E308" prefWidth="42.0" text="Тип" />
                 </columns>
             </TableView>
         </children>

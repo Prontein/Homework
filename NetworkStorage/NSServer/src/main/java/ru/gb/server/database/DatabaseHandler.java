@@ -1,52 +1,78 @@
 package ru.gb.server.database;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import ru.gb.server.util.PropertyUtils;
+import java.sql.*;
 
 
 public class DatabaseHandler {
     private static Connection dbConnection;
-    private static Statement statement;
-    private boolean haveBase = false;
 
-    public static void main(String[] args) {
-//        DatabaseHandler db = new DatabaseHandler();
-//        db.getDbConnection();
-//        createUserCatalog ("user1");
-    }
-
-    public  void getDbConnection() {
+    public static void getDbConnection() {
         try {
-            Class.forName("org.postgresql.Driver");
-            dbConnection = DriverManager.getConnection("jdbc:postgresql://localhost:5435/cloud","postgres","postgrespass");
-            System.out.println("Подключился");
-            statement = dbConnection.createStatement();
-            statement.executeUpdate("CREATE TABLE IF NOT EXISTS users ("
-                                    + "id SERIAL PRIMARY KEY NOT NULL ,"
-                                    + "login TEXT NOT NULL,"
-                                    + "password TEXT NOT NULL)");
-//            statement.executeUpdate("INSERT INTO users (login, password) VALUES ('user2', 'pass2');");
-            dbConnection.close();
-        } catch (ClassNotFoundException | SQLException e) {
+            dbConnection = DriverManager.getConnection(PropertyUtils.getProperties("URL"),
+                    PropertyUtils.getProperties("USER"), PropertyUtils.getProperties("PASSWORD"));
+        } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public static void createUserCatalog (String login) {
-        Path path = Paths.get("NetworkStorage/NSServer/cloud");
-        System.out.println(path);
-//        File dir = new File (path.toAbsolutePath().toString());
-        System.out.println(path.toAbsolutePath().toString());
-        new File(path + "/" + login).mkdirs();
-        path = Paths.get(path + "/" + login);
-        System.out.println(path);
-//    public void signUpUser (String login, String password) {
-//        String insert =
-//    }
+    public static boolean createNewUser (String login, String password) {
+        boolean isRegistrationAccept;
+
+        getDbConnection();
+        isRegistrationAccept = createPrepStatementNewUser(login,password);
+        disconnect();
+        return isRegistrationAccept;
+    }
+
+    public static boolean authorizationUser (String login, String password) {
+        boolean isUserExist;
+
+        getDbConnection();
+        isUserExist = !isUserExist(login,password);
+        disconnect();
+        return isUserExist;
+    }
+
+    private static boolean createPrepStatementNewUser(String login, String password) {
+        boolean isRegistrationAccept = true;
+
+        try (PreparedStatement ps = dbConnection.prepareStatement(PropertyUtils.getProperties("SQL_INSERT"))) {
+            ps.setString(1, login);
+            ps.setString(2, password);
+
+            if (isUserExist(login,password)) {
+                ps.execute();
+                isRegistrationAccept = true;
+            } else {
+                isRegistrationAccept = false;;
+            }
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return isRegistrationAccept;
+    }
+
+    private static boolean isUserExist (String login, String password) {
+        try (Statement statement = dbConnection.createStatement();
+             ResultSet rs = statement.executeQuery(PropertyUtils.getProperties("SQL_SELECT"))) {
+
+            while (rs.next()) {
+                if (rs.getString("login").equals(login) && rs.getString("password").equals(password)) return false;
+            }
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return true;
+    }
+
+    private static void disconnect () {
+        if (dbConnection != null) {
+            try {
+                dbConnection.close();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }
     }
 }

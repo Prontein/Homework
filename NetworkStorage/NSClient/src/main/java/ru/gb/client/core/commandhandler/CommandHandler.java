@@ -1,39 +1,25 @@
 package ru.gb.client.core.commandhandler;
 
 import domain.MessageDTO;
-import domain.MessageType;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import ru.gb.client.core.controller.MainController;
+import ru.gb.client.core.controller.callback.Callback;
 
 
 public class CommandHandler extends SimpleChannelInboundHandler<String> {
 
-    private MainController mainController;
+    private final Callback messageFromServer;
 
-    public CommandHandler(MainController mainController) {
-        this.mainController = mainController;
+    public CommandHandler(Callback messageFromServer) {
+        this.messageFromServer = messageFromServer;
     }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx,String messageDTO) {
-        MessageDTO messageFromServer = MessageDTO.convertFromJson(messageDTO);
+        MessageDTO serverMessage = MessageDTO.convertFromJson(messageDTO);
 
-        switch (messageFromServer.getMessageType()) {
-
-            case SERVER_CATALOG -> {
-                mainController.getServerPanelController().updateListServerCatalog(messageFromServer.getServerCatalogList());
-                mainController.getServerPanelController().setServerDirectoryPath(messageFromServer.getFileDirectorySelectTo());
-            }
-
-            case FILE_COPY_ACCEPT -> {
-                mainController.startCopy();
-            }
+        if (messageFromServer != null) {
+            messageFromServer.callback(serverMessage);
         }
-    }
-
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("Клиент подключился");
     }
 }

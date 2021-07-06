@@ -3,7 +3,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane prefHeight="533.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.gb.client.core.controller.MainController">
+<AnchorPane prefHeight="440.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ru.gb.client.core.controller.MainController">
    <children>
       <HBox layoutX="14.0" layoutY="66.0" prefHeight="314.0" prefWidth="972.0">
          <children>
@@ -20,16 +20,17 @@
               </rowConstraints>
                <children>
                   <Button fx:id="copyBtn" focusTraversable="false" mnemonicParsing="false" onAction="#copyFileAction" prefHeight="25.0" prefWidth="88.0" text="Копировать" GridPane.rowIndex="1" />
-                  <Button focusTraversable="false" mnemonicParsing="false" text="Переместить" GridPane.rowIndex="2" />
-                  <Button focusTraversable="false" mnemonicParsing="false" prefHeight="25.0" prefWidth="88.0" text="Удалить" GridPane.rowIndex="3" />
                </children>
             </GridPane>
              <fx:include fx:id="controlPanelServer" source="controlPanelServer.fxml" />
          </children>
       </HBox>
-      <TextArea layoutX="14.0" layoutY="388.0" prefHeight="131.0" prefWidth="972.0" />
-      <Button fx:id="connectWithServerBtn" layoutX="710.0" layoutY="14.0" mnemonicParsing="false" onAction="#registrationAction" prefHeight="25.0" prefWidth="107.0" text="Зарегистрироваться" />
+      <Button fx:id="registrationOnServerBtn" layoutX="710.0" layoutY="14.0" mnemonicParsing="false" onAction="#registrationAction" prefHeight="25.0" prefWidth="107.0" text="Зарегистрироваться" />
       <Button layoutX="828.0" layoutY="14.0" mnemonicParsing="false" onAction="#connectAction" prefHeight="25.0" prefWidth="107.0" text="Подключиться" />
+      <Label layoutX="598.0" layoutY="39.0" text="Password" />
+      <TextField fx:id="loginField" layoutX="389.0" layoutY="14.0" />
+      <Label layoutX="450.0" layoutY="39.0" text="Login" />
+      <PasswordField fx:id="passwordField" layoutX="549.0" layoutY="14.0" />
 
    </children>
 

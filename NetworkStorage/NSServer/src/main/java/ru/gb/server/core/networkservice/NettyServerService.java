@@ -7,12 +7,17 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
+import ru.gb.server.core.comanddictionary.dictionaryinterface.CommandDictionaryService;
 import ru.gb.server.core.commandhandler.CommandHandler;
 import ru.gb.server.core.networkservice.networkInterface.ServerService;
+import ru.gb.server.util.PropertyUtils;
 
 public class NettyServerService implements ServerService {
 
-    private static final int SERVER_PORT = 8189;
+    private CommandDictionaryService dictionaryService;
+    public NettyServerService (CommandDictionaryService dictionaryService) {
+        this.dictionaryService = dictionaryService;
+    }
 
     @Override
     public void startServer() {
@@ -29,14 +34,14 @@ public class NettyServerService implements ServerService {
                             channel.pipeline()
                                     .addLast(new StringDecoder())
                                     .addLast(new StringEncoder())
-                                    .addLast(new CommandHandler());
+                                    .addLast(new CommandHandler(dictionaryService));
                         }
                     });
-            ChannelFuture future = bootstrap.bind(SERVER_PORT).sync();
-            System.out.println("Server start");
+            ChannelFuture future = bootstrap.bind(Integer.parseInt(PropertyUtils.getProperties("PORT"))).sync();
             future.channel().closeFuture().sync();
+
         } catch (Exception e) {
-            System.out.println("Server shutdown");
+            e.printStackTrace();
         } finally {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();

@@ -16,23 +16,23 @@ import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.stream.ChunkedFile;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import ru.gb.client.core.commandhandler.CommandHandler;
-import ru.gb.client.core.controller.MainController;
+import ru.gb.client.core.controller.callback.Callback;
 import ru.gb.client.core.networkservice.networkInterface.ClientNetworkService;
-
+import ru.gb.client.core.util.PropertyUtils;
 import java.io.File;
 import java.io.IOException;
 
 
 public class NettyClient implements ClientNetworkService {
 
-    private static final String HOST = "localhost";
-    private static final int PORT = 8189;
+    private final String IN_OUT_OBJECT_HANDLER = "ChunkedWriteHandler";
+    private final String BIF_FILE_HANDLER = "BigFilesWriteHandler";
 
-    private MainController mainController;
     private SocketChannel channel;
+    private final Callback messageFromServer;
 
-    public NettyClient (MainController mainController) {
-        this.mainController = mainController;
+    public NettyClient (Callback callback) {
+        this.messageFromServer = callback;
     }
 
     @Override
@@ -51,10 +51,10 @@ public class NettyClient implements ClientNetworkService {
                                 socketChannel.pipeline()
                                         .addLast(new StringEncoder())
                                         .addLast(new StringDecoder())
-                                        .addLast(new CommandHandler(mainController));
+                                        .addLast(new CommandHandler(messageFromServer));
                             }
                         });
-                ChannelFuture future = bootstrap.connect(HOST, PORT).sync();
+                ChannelFuture future = bootstrap.connect(PropertyUtils.getProperties("HOST"), Integer.parseInt(PropertyUtils.getProperties("PORT"))).sync();
                 future.channel().closeFuture().sync();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -72,6 +72,7 @@ public class NettyClient implements ClientNetworkService {
         messageDTO.setFileName(filename);
         messageDTO.setFileSize(fileSize);
         messageDTO.setFileDirectorySelectTo(path);
+
         channel.writeAndFlush(messageDTO.convertToJson());
     }
 
@@ -83,20 +84,20 @@ public class NettyClient implements ClientNetworkService {
         messageDTO.setFileName(selectedFilename);
         messageDTO.setFileDirectorySelectFrom(serverPathDirectory);
 
-        channel.pipeline().addFirst("1", new BigFilesWriteHandler(clientPathDirectory + "/" + selectedFilename, fileSize));
-        channel.pipeline().addFirst("2", new ChunkedWriteHandler());
+        channel.pipeline().addFirst(BIF_FILE_HANDLER, new BigFilesWriteHandler(clientPathDirectory + "\\" + selectedFilename, fileSize));
+        channel.pipeline().addFirst(IN_OUT_OBJECT_HANDLER, new ChunkedWriteHandler());
         channel.writeAndFlush(messageDTO.convertToJson());
     }
 
     @Override
     public void startCopyFile(String path) {
         try {
-            channel.pipeline().addLast("2", new ChunkedWriteHandler());
+            channel.pipeline().addLast(IN_OUT_OBJECT_HANDLER, new ChunkedWriteHandler());
             ChunkedFile sendFile = new ChunkedFile(new File(path));
             ChannelFuture future = channel.writeAndFlush(sendFile);
 
             future.addListener((ChannelFutureListener) channelFuture -> {
-                channel.pipeline().remove("2"); System.out.println("Finish write");
+                channel.pipeline().remove(IN_OUT_OBJECT_HANDLER);
             });
         } catch (IOException e) {
             e.printStackTrace();
@@ -104,41 +105,42 @@ public class NettyClient implements ClientNetworkService {
     }
 
     @Override
-    public void connectWithServer() {
-        MessageDTO messageDTO = new MessageDTO();
-        messageDTO.setMessageType(MessageType.SERVER_CATALOG);
-        channel.writeAndFlush(messageDTO.convertToJson());
+    public void connectWithServer(String login, String password) {
+        MessageDTO clientMessage = new MessageDTO();
+        clientMessage.setLogin(login);
+        clientMessage.setPassword(password);
+        clientMessage.setMessageType(MessageType.AUTHORIZATION);
+
+        channel.writeAndFlush(clientMessage.convertToJson());
+    }
+
+    @Override
+    public void registrationOnServer(String login, String password) {
+        MessageDTO clientMessage = new MessageDTO();
+        clientMessage.setLogin(login);
+        clientMessage.setPassword(password);
+        clientMessage.setMessageType(MessageType.REGISTRATION);
+
+        channel.writeAndFlush(clientMessage.convertToJson());
     }
 
     @Override
     public void upServerCatalog(String pathServerCatalog) {
-        MessageDTO messageDTO = new MessageDTO();
-        messageDTO.setMessageType(MessageType.SERVER_CATALOG_UP);
-        messageDTO.setServerCatalogDirectory(pathServerCatalog);
-        channel.writeAndFlush(messageDTO.convertToJson());
+        MessageDTO clientMessage = new MessageDTO();
+        clientMessage.setMessageType(MessageType.SERVER_CATALOG_UP);
+        clientMessage.setServerCatalog(pathServerCatalog);
+
+        channel.writeAndFlush(clientMessage.convertToJson());
     }
 
     @Override
-    public void showSelectedCatalog(String path) {
-        MessageDTO messageDTO = new MessageDTO();
-        messageDTO.setMessageType(MessageType.SERVER_CATALOG_SHOW_SELECTED);
-        messageDTO.setFileDirectorySelectTo(path);
-        channel.writeAndFlush(messageDTO.convertToJson());
-    }
+    public void showSelectedCatalog(String path, String catalogName) {
+        MessageDTO clientMessage = new MessageDTO();
+        clientMessage.setMessageType(MessageType.SERVER_CATALOG_SHOW_SELECTED);
+        clientMessage.setFileDirectorySelectTo(path);
+        clientMessage.setCatalogName(catalogName);
 
-    @Override
-    public void transferFile() {
-
-    }
-
-    @Override
-    public void deleteFile() {
-
-    }
-
-    @Override
-    public void readCommandResult() {
-
+        channel.writeAndFlush(clientMessage.convertToJson());
     }
 
     @Override

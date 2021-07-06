@@ -1,7 +1,7 @@
 package ru.gb.server.core.commandhandler;
 
-import domain.FileInfoServer;
-
+import domain.FileInfo;
+import ru.gb.server.util.PropertyUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,26 +10,22 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ServerHandler {
-    public  List<FileInfoServer> showMyCatalog () {
-        try {
-            List<FileInfoServer> serverCatalog = Files.list(getServerCatalogPath()).map(FileInfoServer::new).collect(Collectors.toList());
-            return serverCatalog;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
 
-    public Path getServerCatalogPath() {
-        Path currentPath = Paths.get("cloud" );
-        return  currentPath.normalize().toAbsolutePath();
+    private final Path serverCloud = Paths.get(PropertyUtils.getProperties("SERVER_DIRECTORY")).toAbsolutePath();
+
+
+    public Path getServerPath(String login) {
+        Path userPath = serverCloud.resolve(Paths.get(login));
+        return  userPath.normalize().toAbsolutePath();
     }
 
     public boolean fileIsExists (String fileName, String pathToServer) {
+        Path selectPath = serverCloud.resolve(Paths.get(pathToServer));
+
         try {
-            List<FileInfoServer> hi = Files.list(Paths.get(pathToServer)).map(FileInfoServer::new).collect(Collectors.toList());
-            for (FileInfoServer file : hi) {
-                if (file.getFileName().equals(fileName)) return false;
+            List<FileInfo> serverCatalog = Files.list(selectPath).map(FileInfo::new).collect(Collectors.toList());
+            for (FileInfo file : serverCatalog) {
+                if (file.getFilename().equals(fileName)) return false;
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -37,17 +33,18 @@ public class ServerHandler {
         return true;
     }
 
-    public List<FileInfoServer> serverCatalogUp(String serverCatalogDirectory) {
-        Path upperPath = Paths.get(serverCatalogDirectory).getParent();
-        if (upperPath != null) {
+    public List<FileInfo> serverCatalogUp(Path serverCatalog) {
+        Path upperPath = serverCatalog.getParent();
+
+        if (upperPath != null && !upperPath.equals(serverCloud)) {
             return  showMyCatalog(upperPath);
         }
-        return showMyCatalog(Paths.get(serverCatalogDirectory));
+        return showMyCatalog(serverCatalog);
     }
 
-    public List<FileInfoServer> showMyCatalog (Path currentPath) {
+    public List<FileInfo> showMyCatalog (Path currentPath) {
         try {
-            List<FileInfoServer> serverCatalog = Files.list(currentPath).map(FileInfoServer::new).collect(Collectors.toList());
+            List<FileInfo> serverCatalog = Files.list(currentPath).map(FileInfo::new).collect(Collectors.toList());
             return serverCatalog;
         } catch (IOException e) {
             e.printStackTrace();
@@ -55,11 +52,23 @@ public class ServerHandler {
         return null;
     }
 
-    public Path getServerCatalogPath(String path) {
-        Path currentPath = Paths.get(path).getParent();
-        if (currentPath != null) {
+    public Path getServerCatalogPathUp(Path path) {
+        Path currentPath = path.getParent();
+
+        if (currentPath != null && !currentPath.equals(serverCloud)) {
             return  currentPath.normalize().toAbsolutePath();
         }
-        return  Paths.get(path).normalize().toAbsolutePath();
+        return  path.normalize().toAbsolutePath();
+    }
+
+    public Path createUserCatalog (String login) {
+        Path userPath = Paths.get(PropertyUtils.getProperties("SERVER_DIRECTORY"), login).toAbsolutePath();
+
+        try {
+            Files.createDirectories(userPath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return userPath;
     }
 }

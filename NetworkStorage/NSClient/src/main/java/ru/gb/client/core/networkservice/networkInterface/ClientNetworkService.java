@@ -5,12 +5,10 @@ public interface ClientNetworkService {
     void start();
     void copyFile(String filename, String pathTo, Long fileSize);
     void startCopyFile(String path);
-    void connectWithServer();
+    void connectWithServer(String login, String password);
+    void registrationOnServer(String login, String password);
     void upServerCatalog(String pathServerCatalog);
-    void showSelectedCatalog(String path);
-    void transferFile();
-    void deleteFile();
-    void readCommandResult();
+    void showSelectedCatalog(String path, String filename);
     void closeConnection();
     void copyFileFromServer(String selectedFilename, String clientPathField, String serverPathField, Long fileSize);
 }
