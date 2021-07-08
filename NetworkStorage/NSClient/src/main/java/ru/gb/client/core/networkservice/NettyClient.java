@@ -17,21 +17,20 @@ import io.netty.handler.stream.ChunkedFile;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import ru.gb.client.core.commandhandler.CommandHandler;
 import ru.gb.client.core.controller.callback.Callback;
-import ru.gb.client.core.networkservice.networkInterface.ClientNetworkService;
+import ru.gb.client.core.networkservice.clientservice.ClientNetworkService;
+import ru.gb.client.core.networkservice.clientservice.FunctionalNettyClient;
 import ru.gb.client.core.util.PropertyUtils;
+
 import java.io.File;
 import java.io.IOException;
 
 
-public class NettyClient implements ClientNetworkService {
-
-    private final String IN_OUT_OBJECT_HANDLER = "ChunkedWriteHandler";
-    private final String BIF_FILE_HANDLER = "BigFilesWriteHandler";
+public class NettyClient implements ClientNetworkService, FunctionalNettyClient {
 
     private SocketChannel channel;
     private final Callback messageFromServer;
 
-    public NettyClient (Callback callback) {
+    public NettyClient(Callback callback) {
         this.messageFromServer = callback;
     }
 
@@ -47,14 +46,15 @@ public class NettyClient implements ClientNetworkService {
                             @Override
                             protected void initChannel(SocketChannel socketChannel) {
                                 channel = socketChannel;
-                                channel.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(9048));
+                                channel.config().setRecvByteBufAllocator(new FixedRecvByteBufAllocator(Integer.parseInt(PropertyUtils.getProperties("BUFFER_SIZE"))));
                                 socketChannel.pipeline()
                                         .addLast(new StringEncoder())
                                         .addLast(new StringDecoder())
                                         .addLast(new CommandHandler(messageFromServer));
                             }
                         });
-                ChannelFuture future = bootstrap.connect(PropertyUtils.getProperties("HOST"), Integer.parseInt(PropertyUtils.getProperties("PORT"))).sync();
+                ChannelFuture future = bootstrap.connect(PropertyUtils.getProperties("HOST"),
+                        Integer.parseInt(PropertyUtils.getProperties("PORT"))).sync();
                 future.channel().closeFuture().sync();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -84,20 +84,20 @@ public class NettyClient implements ClientNetworkService {
         messageDTO.setFileName(selectedFilename);
         messageDTO.setFileDirectorySelectFrom(serverPathDirectory);
 
-        channel.pipeline().addFirst(BIF_FILE_HANDLER, new BigFilesWriteHandler(clientPathDirectory + "\\" + selectedFilename, fileSize));
-        channel.pipeline().addFirst(IN_OUT_OBJECT_HANDLER, new ChunkedWriteHandler());
+        channel.pipeline().addFirst(new BigFilesWriteHandler(clientPathDirectory + "\\" + selectedFilename, fileSize));
+        channel.pipeline().addFirst(new ChunkedWriteHandler());
         channel.writeAndFlush(messageDTO.convertToJson());
     }
 
     @Override
     public void startCopyFile(String path) {
         try {
-            channel.pipeline().addLast(IN_OUT_OBJECT_HANDLER, new ChunkedWriteHandler());
+            channel.pipeline().addLast(new ChunkedWriteHandler());
             ChunkedFile sendFile = new ChunkedFile(new File(path));
             ChannelFuture future = channel.writeAndFlush(sendFile);
 
             future.addListener((ChannelFutureListener) channelFuture -> {
-                channel.pipeline().remove(IN_OUT_OBJECT_HANDLER);
+                channel.pipeline().remove(ChunkedWriteHandler.class);
             });
         } catch (IOException e) {
             e.printStackTrace();
@@ -145,6 +145,5 @@ public class NettyClient implements ClientNetworkService {
 
     @Override
     public void closeConnection() {
-
     }
 }

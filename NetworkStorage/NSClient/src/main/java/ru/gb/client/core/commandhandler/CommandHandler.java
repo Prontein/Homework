@@ -15,7 +15,7 @@ public class CommandHandler extends SimpleChannelInboundHandler<String> {
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx,String messageDTO) {
+    protected void channelRead0(ChannelHandlerContext ctx, String messageDTO) {
         MessageDTO serverMessage = MessageDTO.convertFromJson(messageDTO);
 
         if (messageFromServer != null) {

@@ -9,37 +9,39 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import domain.allertsandexeption.AlertMessage;
-import ru.gb.client.core.commandhandler.CommandDictionary.dictionaryinterface.CommandDictionaryService;
+import ru.gb.client.core.commandhandler.commanddictionary.dictionaryservice.CommandDictionaryService;
 import ru.gb.client.core.controller.callback.Callback;
-import ru.gb.client.core.networkservice.networkInterface.ClientNetworkService;
+import ru.gb.client.core.networkservice.clientservice.FunctionalNettyClient;
+import ru.gb.client.core.util.AlertWindow;
 import ru.gb.client.factory.Factory;
+
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ResourceBundle;
+
 import domain.MessageDTO;
 
 
 public class MainController implements Initializable, Callback {
 
-    public final static String CLIENT = "client";
-    public final static String SERVER = "server";
+    public final static String CLIENT_PANEL = "client";
+    public final static String SERVER_PANEL = "server";
     public final static String POINTER = "ctrl";
 
     private CommandDictionaryService dictionaryService;
-    private ClientNetworkService networkService;
+    private FunctionalNettyClient networkService;
     private PanelController serverPanelController;
     private PanelController clientPanelController;
-    private Callback callback;
     public Button copyBtn;
     public Button registrationOnServerBtn;
     public TextField loginField;
     public PasswordField passwordField;
 
     @FXML
-    AnchorPane controlPanelClient;
+    private AnchorPane controlPanelClient;
     @FXML
-    AnchorPane controlPanelServer;
+    private AnchorPane controlPanelServer;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -47,21 +49,20 @@ public class MainController implements Initializable, Callback {
         dictionaryService = Factory.getCommandDictionaryService();
         networkService = Factory.getNetworkService(this);
         networkService.start();
-
     }
 
-    private void loadClientInterface () {
+    private void loadClientInterface() {
         loadDiskCatalog();
         loadFilesCatalogView();
         loadServerCatalogView();
     }
 
-    private void loadDiskCatalog () {
+    private void loadDiskCatalog() {
         clientPanelController = (PanelController) controlPanelClient.getProperties().get(POINTER);
         clientPanelController.loadDiskCatalog();
     }
 
-    private void loadFilesCatalogView () {
+    private void loadFilesCatalogView() {
         clientPanelController = (PanelController) controlPanelClient.getProperties().get(POINTER);
         clientPanelController.ClientFilesView();
     }
@@ -72,7 +73,7 @@ public class MainController implements Initializable, Callback {
         addListenerOnServerCatalogView(serverPanelController);
     }
 
-    private void addListenerOnServerUpBtn (PanelController serverPanelController) {
+    private void addListenerOnServerUpBtn(PanelController serverPanelController) {
         serverPanelController.serverCatalogUpBtn.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
@@ -82,7 +83,7 @@ public class MainController implements Initializable, Callback {
         });
     }
 
-    private void addListenerOnServerCatalogView (PanelController serverPanelController) {
+    private void addListenerOnServerCatalogView(PanelController serverPanelController) {
         serverPanelController.filesTableServer.setOnMouseClicked(new EventHandler<MouseEvent>() {
 
             @Override
@@ -91,7 +92,7 @@ public class MainController implements Initializable, Callback {
                         getSelectedItem().getType().equals(FileType.FILE)) {
 
                     String selectFilePathFromServer = serverPanelController.serverPathField.getText();
-                    String selectFileNameFromServer = serverPanelController.getSelectedFilename(SERVER);
+                    String selectFileNameFromServer = serverPanelController.getSelectedFilename(SERVER_PANEL);
                     networkService.showSelectedCatalog(selectFilePathFromServer, selectFileNameFromServer);
                 }
             }
@@ -103,7 +104,7 @@ public class MainController implements Initializable, Callback {
         String password = passwordField.getText();
 
         if (!login.equals("") && !password.equals("")) {
-            networkService.registrationOnServer(login,password);
+            networkService.registrationOnServer(login, password);
         } else {
             typeAlert(AlertMessage.INPUT_ERROR);
         }
@@ -114,7 +115,7 @@ public class MainController implements Initializable, Callback {
         String password = passwordField.getText();
 
         if (!login.equals("") && !password.equals("")) {
-            networkService.connectWithServer(login,password);
+            networkService.connectWithServer(login, password);
         } else {
             typeAlert(AlertMessage.INPUT_ERROR);
         }
@@ -123,46 +124,43 @@ public class MainController implements Initializable, Callback {
     public void copyFileAction(ActionEvent actionEvent) {
         if (isFileSelected()) {
             if (clientPanelController.filesTable.isFocused()) {
-                networkService.copyFile(clientPanelController.getSelectedFilename(CLIENT), serverPanelController.getServerPathField(),
-                        clientPanelController.getSelectedFileSize(CLIENT));
+                networkService.copyFile(clientPanelController.getSelectedFilename(CLIENT_PANEL), serverPanelController.getServerPathField(),
+                        clientPanelController.getSelectedFileSize(CLIENT_PANEL));
             } else {
-                copyFromServer(serverPanelController.getSelectedFilename(SERVER), clientPanelController.getCurrentPath(),
-                        serverPanelController.getSelectedFileSize(SERVER));
+                copyFromServer(serverPanelController.getSelectedFilename(SERVER_PANEL), clientPanelController.getCurrentPath(),
+                        serverPanelController.getSelectedFileSize(SERVER_PANEL));
             }
         }
     }
 
-    public void refreshClientCatalog() { ;
+    public void refreshClientCatalog() {
         clientPanelController.updateClientPanel();
     }
 
-    private boolean isFileSelected () {
-        if (clientPanelController.getSelectedFilename(CLIENT) == null && serverPanelController.getSelectedFilename(SERVER) == null) {
-            Alert alert = new Alert(Alert.AlertType.ERROR, AlertMessage.SELECT_ERROR, ButtonType.OK);
-            alert.showAndWait();
+    private boolean isFileSelected() {
+        if (clientPanelController.getSelectedFilename(CLIENT_PANEL) == null && serverPanelController.getSelectedFilename(SERVER_PANEL) == null) {
+            typeAlert(AlertMessage.SELECT_ERROR);
             return false;
         }
         return true;
     }
 
-    public void copyFromServer (String filename, String pathClientDirectory, Long fileSize) {
+    public void copyFromServer(String filename, String pathClientDirectory, Long fileSize) {
         if (clientPanelController.fileIsExists(filename, pathClientDirectory)) {
             String pathServerDirectory = serverPanelController.getServerPathField();
             networkService.copyFileFromServer(filename, pathClientDirectory, pathServerDirectory, fileSize);
         } else {
-            Alert alert = new Alert(Alert.AlertType.ERROR, AlertMessage.COPY_ERROR, ButtonType.OK);
-            alert.showAndWait();
+            typeAlert(AlertMessage.COPY_ERROR);
         }
     }
 
-    public void startCopyFileToServer () {
-        Path path = Paths.get(clientPanelController.getCurrentPath(), clientPanelController.getSelectedFilename(CLIENT));
+    public void startCopyFileToServer() {
+        Path path = Paths.get(clientPanelController.getCurrentPath(), clientPanelController.getSelectedFilename(CLIENT_PANEL));
         networkService.startCopyFile(path.toString());
     }
 
     public void typeAlert(String alertMessage) {
-        Alert alert = new Alert(Alert.AlertType.ERROR, alertMessage, ButtonType.OK);
-        alert.showAndWait();
+        AlertWindow.getAlertWindowError(alertMessage);
     }
 
     public PanelController getServerPanelController() {
@@ -174,7 +172,7 @@ public class MainController implements Initializable, Callback {
     }
 
     @Override
-    public void callback (MessageDTO serverMessage) {
+    public void callback(MessageDTO serverMessage) {
         dictionaryService.processCommand(serverMessage, this);
     }
 

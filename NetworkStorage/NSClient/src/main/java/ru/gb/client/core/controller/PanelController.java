@@ -19,22 +19,21 @@ import java.util.stream.Collectors;
 
 public class PanelController {
 
-    public final static String CLIENT = "client";
-    public final static String SERVER = "server";
+    public final static String CLIENT_PANEL = "client";
+    public final static String SERVER_PANEL = "server";
 
     public ComboBox<String> diskCatalogBox;
     public TableView<FileInfo> filesTable;
     public TableView<FileInfo> filesTableServer;
     public TextField clientPathField;
     public TextField serverPathField;
-    public TableColumn<FileInfo,String> filenameColumn;
-    public TableColumn<FileInfo,Long> fileSizeColumn;
-    public TableColumn<FileInfo,Long> fileSizeColumnServer;
-    public TableColumn<FileInfo,String> filenameColumnServer;
-    public TableColumn<FileInfo,String> fileTypeColumnServer;
+    public TableColumn<FileInfo, String> filenameColumn;
+    public TableColumn<FileInfo, Long> fileSizeColumn;
+    public TableColumn<FileInfo, Long> fileSizeColumnServer;
+    public TableColumn<FileInfo, String> filenameColumnServer;
     public Button serverCatalogUpBtn;
 
-    public void loadDiskCatalog () {
+    public void loadDiskCatalog() {
         diskCatalogBox.getItems().clear();
         for (Path p : FileSystems.getDefault().getRootDirectories()) {
             diskCatalogBox.getItems().add(p.toString());
@@ -49,22 +48,22 @@ public class PanelController {
         setCellFileTypeParam(fileSizeColumn);
     }
 
-    public void serverFilesView () {
+    public void serverFilesView() {
         setCellFileNameParam(filenameColumnServer);
         setCellFileSizeParam(fileSizeColumnServer);
         setCellFileTypeParam(fileSizeColumnServer);
         filesTableServer.getSortOrder();
     }
 
-    private void setCellFileNameParam (TableColumn<FileInfo,String> fileNameColumn) {
+    private void setCellFileNameParam(TableColumn<FileInfo, String> fileNameColumn) {
         fileNameColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFilename()));
     }
 
-    private void setCellFileSizeParam (TableColumn<FileInfo,Long> fileSizeColumn) {
+    private void setCellFileSizeParam(TableColumn<FileInfo, Long> fileSizeColumn) {
         fileSizeColumn.setCellValueFactory(param -> new SimpleObjectProperty<>(param.getValue().getSize()));
     }
 
-    private void setCellFileTypeParam (TableColumn<FileInfo,Long> fileTypeColumn) {
+    private void setCellFileTypeParam(TableColumn<FileInfo, Long> fileTypeColumn) {
         fileTypeColumn.setCellFactory(column -> {
             return new TableCell<FileInfo, Long>() {
                 @Override
@@ -99,42 +98,43 @@ public class PanelController {
             filesTable.getItems().addAll(Files.list(path).map(FileInfo::new).collect(Collectors.toList()));
             filesTable.sort();
         } catch (IOException e) {
-            Alert alert = new Alert (Alert.AlertType.WARNING, AlertMessage.UPDATE_ERROR, ButtonType.OK);
+            Alert alert = new Alert(Alert.AlertType.WARNING, AlertMessage.UPDATE_ERROR, ButtonType.OK);
             alert.showAndWait();
         }
     }
 
     public String getSelectedFilename(String selectedPanel) {
         switch (selectedPanel) {
-            case CLIENT -> {
-                if (!filesTable.isFocused() || filesTable.getSelectionModel().isEmpty()) {
-                    return null;
-                }
-                return filesTable.getSelectionModel().getSelectedItem().getFilename();
+            case CLIENT_PANEL -> {
+                return getFilename(filesTable);
             }
-            case SERVER -> {
-                if (!filesTableServer.isFocused() || filesTableServer.getSelectionModel().isEmpty()) {
-                    return null;
-                }
-                return filesTableServer.getSelectionModel().getSelectedItem().getFilename();
+            case SERVER_PANEL -> {
+                return getFilename(filesTableServer);
             }
         }
         return null;
     }
 
-    public long getSelectedFileSize (String panel) {
+    private String getFilename(TableView<FileInfo> filesTable) {
+        if (!filesTable.isFocused() || filesTable.getSelectionModel().isEmpty()) {
+            return null;
+        }
+        return filesTable.getSelectionModel().getSelectedItem().getFilename();
+    }
+
+    public long getSelectedFileSize(String panel) {
         switch (panel) {
-            case (CLIENT) -> {
+            case (CLIENT_PANEL) -> {
                 return filesTable.getSelectionModel().getSelectedItem().getSize();
             }
-            case (SERVER) -> {
+            case (SERVER_PANEL) -> {
                 return filesTableServer.getSelectionModel().getSelectedItem().getSize();
             }
         }
         return -1L;
     }
 
-    public boolean fileIsExists (String filename, String pathClientDirectory) {
+    public boolean fileIsExists(String filename, String pathClientDirectory) {
         try {
             List<FileInfo> clientCatalog = Files.list(Paths.get(pathClientDirectory)).map(FileInfo::new).collect(Collectors.toList());
             for (FileInfo file : clientCatalog) {
@@ -146,11 +146,11 @@ public class PanelController {
         return true;
     }
 
-    public String getCurrentPath () {
+    public String getCurrentPath() {
         return clientPathField.getText();
     }
 
-    public void setServerDirectoryPath (String pathToServerCatalog) {
+    public void setServerDirectoryPath(String pathToServerCatalog) {
         serverPathField.setText(pathToServerCatalog);
     }
 
@@ -159,7 +159,7 @@ public class PanelController {
     }
 
     public void selectDiskAction(ActionEvent actionEvent) {
-        ComboBox<String> element = (ComboBox<String>)actionEvent.getSource();
+        ComboBox<String> element = (ComboBox<String>) actionEvent.getSource();
         updateListClientCatalog(Paths.get(element.getSelectionModel().getSelectedItem()));
     }
 
@@ -177,7 +177,7 @@ public class PanelController {
         }
     }
 
-    public void updateClientPanel () {
+    public void updateClientPanel() {
         updateListClientCatalog(Paths.get(getCurrentPath()));
     }
 }
